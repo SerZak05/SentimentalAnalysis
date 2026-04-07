@@ -1,3 +1,9 @@
-altair
 pandas
 streamlit
+transformers
+vk_api
+dotenv
+numpy
+joblib
+folium
+streamlit_folium
