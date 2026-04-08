@@ -10,6 +10,7 @@ def load_model():
     model_file = "big_bert_trained.pt"
     with open(model_file, "rb") as f:
         pipe = torch.load(f, weights_only=False)
+        pipe.model.to("cpu")
     return pipe
 
 # tokenizer, model = load_model()
