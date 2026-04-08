@@ -9,7 +9,7 @@ def load_model():
     # return pipeline("text-classification", model_name)
     model_file = "big_bert_trained.pt"
     with open(model_file, "rb") as f:
-        pipe = torch.load(f, weights_only=False)
+        pipe = torch.load(f, weights_only=False, map_location=torch.device("cpu"))
     return pipe
 
 # tokenizer, model = load_model()
