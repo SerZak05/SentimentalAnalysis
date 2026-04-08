@@ -9,7 +9,7 @@ def load_model():
     # return pipeline("text-classification", model_name)
     model_file = "big_bert_trained.pt"
     with open(model_file, "rb") as f:
-        pipe = torch.load(f, weights_only=False, map_location=torch.device("cpu"))
+        pipe = torch.load(f, weights_only=False)
     return pipe
 
 # tokenizer, model = load_model()
@@ -33,4 +33,4 @@ BATCH_SIZE = 64
 
 def get_sentiment(posts: list[Post]):
     all_texts = [post.text for post in posts]
-    return pipe(all_texts, truncation=True, max_len=2048)
+    return pipe(all_texts, truncation=True, max_len=2048, device=-1)
