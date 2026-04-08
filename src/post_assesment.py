@@ -10,6 +10,8 @@ def load_model():
     model_file = "big_bert_trained.pt"
     with open(model_file, "rb") as f:
         pipe = torch.load(f, weights_only=False)
+        print(pipe.device, flush=True)
+        pipe.device = "cpu"
         pipe.model.to("cpu")
     return pipe
 
@@ -34,4 +36,4 @@ BATCH_SIZE = 64
 
 def get_sentiment(posts: list[Post]):
     all_texts = [post.text for post in posts]
-    return pipe(all_texts, truncation=True, max_len=2048, device=-1)
+    return pipe(all_texts, padding=True, truncation=True, max_len=2048, device=-1)
