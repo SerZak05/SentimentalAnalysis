@@ -8,3 +8,4 @@ joblib
 folium
 streamlit_folium
 torch
+torchvision
