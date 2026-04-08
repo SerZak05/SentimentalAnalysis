@@ -1,13 +1,16 @@
-# from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from transformers import pipeline
 from post_search import Post
 import streamlit as st
+import torch
 
 @st.cache_resource
 def load_model():
-    model_name = "cointegrated/rubert-tiny2-cedr-emotion-detection"
+    # model_name = "cointegrated/rubert-tiny2-cedr-emotion-detection"
     # return AutoTokenizer.from_pretrained(model_name), AutoModelForSequenceClassification.from_pretrained(model_name)
-    return pipeline("text-classification", model_name)
+    # return pipeline("text-classification", model_name)
+    model_file = "big_bert_trained.pt"
+    with open(model_file, "rb") as f:
+        pipe = torch.load(f, weights_only=False)
+    return pipe
 
 # tokenizer, model = load_model()
 pipe = load_model()

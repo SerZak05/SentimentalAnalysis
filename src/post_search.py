@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import numpy as np
 import streamlit as st
 import pandas as pd
-from joblib import Parallel, delayed
 
 load_dotenv()
 
@@ -32,57 +31,27 @@ class Post:
     owner_id: int
     # group_owned: bool = False
 
-def search_posts(query: str, num_of_posts: int, *, search_args = {}) -> list[Post]:
+def search_posts(query: str, num_of_posts: int, *, search_args = {}):
     posts: list[Post] = []
-    offset = 0
-    request_count = min(num_of_posts, 200)
-    city_none_stat = 0
-    pos_none_stat = 0
+    request_count = 200
+    start_from: str | None = None
     while len(posts) < num_of_posts:
-        query_results = vk.newsfeed.search(q=query, count=request_count, offset=offset, **search_args)
-        items = [item for item in query_results["items"] if "owner_id" in item and "text" in item]
-        item_dict = {item["owner_id"]: item for item in items}
-        # print(query_results, items, flush=True)
-        owner_ids = np.array([item["owner_id"] for item in items])
-        cities = get_post_city(owner_ids)
-        city_pos = get_city_position(cities)
-        # likes = item.get("likes", {"count": 0})["count"]
-        for id, pos in city_pos.items():
-            if cities[id] is None:
-                city_none_stat += 1
-                continue
-            if pos is None:
-                pos_none_stat += 1
-                continue
-            posts.append(Post(item_dict[id]["text"], cities[id], city_pos[id], id))
-        offset += request_count
-        print(f"Processed {offset} posts, added {len(posts)}. City not found: {city_none_stat}, position not found: {pos_none_stat}.", flush=True)
+        search_res, start_from = _get_posts(query, request_count, start_from, search_args)
+        posts.extend(search_res)
+        print(f"Added {len(posts)}, start_from={start_from}.", flush=True)
+        if start_from is None:
+            break
     return posts[:num_of_posts]
 
 
-def search_posts_parallel(query: str, num_of_posts: int, num_of_workers: int = 4, *, search_args = {}):
-    posts: list[Post] = []
-    offset = 0
-    request_count = min(num_of_posts // num_of_workers + 1, 200)
-    while len(posts) < num_of_posts:
-        search_res = Parallel(n_jobs=num_of_workers) \
-        (
-            delayed(_get_posts)(query, request_count, offset + i * request_count, search_args) for i in range(num_of_workers)
-        )
-        for p in search_res:
-            posts.extend(p)
-            # print(*[pp.geolocation for pp in p])
-        offset += request_count * num_of_workers
-        print(f"Processed {offset} posts, added {len(posts)}.", flush=True)
-    return posts[:num_of_posts]
-
-
-def _get_posts(query: str, request_count: int, offset: int, search_args) -> list[Post]:
+def _get_posts(query: str, request_count: int, start_from: str | None, search_args) -> tuple[list[Post], str | None]:
     posts = []
-    query_results = vk.newsfeed.search(q=query, count=request_count, offset=offset, **search_args)
+    if start_from is None:
+        query_results = vk.newsfeed.search(q=query, count=request_count, **search_args)
+    else:
+        query_results = vk.newsfeed.search(q=query, count=request_count, start_from=start_from, **search_args)
     items = [item for item in query_results["items"] if "owner_id" in item and "text" in item]
     item_dict = {item["owner_id"]: item for item in items}
-    # print(query_results, items, flush=True)
     owner_ids = np.array([item["owner_id"] for item in items])
     cities = get_post_city(owner_ids)
     city_pos = get_city_position(cities)
@@ -92,7 +61,7 @@ def _get_posts(query: str, request_count: int, offset: int, search_args) -> list
             continue
         posts.append(Post(item_dict[id]["text"], cities[id], pos, id))
     assert all(post.geolocation is not None for post in posts)
-    return posts
+    return posts, query_results.get("next_from", None)
 
 
 def get_post_city(owner_id: np.ndarray) -> dict[int, str | None]:
