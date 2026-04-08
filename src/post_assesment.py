@@ -10,8 +10,7 @@ def load_model():
     model_file = "big_bert_trained.pt"
     with open(model_file, "rb") as f:
         pipe = torch.load(f, weights_only=False)
-        print(pipe.device, flush=True)
-        pipe.device = "cpu"
+        pipe.device = torch.device("cpu")
         pipe.model.to("cpu")
     return pipe
 
